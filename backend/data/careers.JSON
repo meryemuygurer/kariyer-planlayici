@@ -1,0 +1,20 @@
+[
+  {
+    "career": "Frontend Developer",
+    "interests": ["Web", "UI/UX"],
+    "skills": ["JavaScript", "HTML", "CSS"],
+    "learning_path": ["HTML/CSS", "JavaScript", "React", "Next.js"]
+  },
+  {
+    "career": "Data Analyst",
+    "interests": ["Data", "Analytics"],
+    "skills": ["Python", "SQL", "Excel"],
+    "learning_path": ["Python", "Pandas", "SQL", "Tableau"]
+  },
+  {
+    "career": "Backend Developer",
+    "interests": ["Web", "Servers"],
+    "skills": ["Python", "APIs"],
+    "learning_path": ["Python", "Django", "REST API", "Databases"]
+  }
+]
