@@ -1,52 +1,83 @@
 # main.py
-# FastAPI backend for Career Path Recommendation
+# FastAPI backend for AI-powered Career Recommendation
+# Written as a student / junior-level backend project 🙂
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from openai import OpenAI
 import json
-from pathlib import Path
+import os
 
 app = FastAPI()
 
-# ===== CORS Setup =====
-# frontend and backend need CORS to talk to each other
+# Allow requests from React frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React frontend is running here
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ===== User Data Model =====
-# Using Pydantic for input validation, still learning this
+# Initialize OpenAI client (API key is read from environment variable)
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 class UserData(BaseModel):
     interests: list[str]
     skills: list[str]
     goal: str
 
-# ===== Load Careers Dataset =====
-# I created a JSON file with some basic career info
-DATA_PATH = Path(__file__).parent / "data" / "careers.json"
-with open(DATA_PATH, "r") as f:
-    careers_data = json.load(f)
 
-# ===== Recommend Endpoint =====
-@app.post("/recommend")
-def recommend(user: UserData):
-    # Simple matching logic: I know it's basic but works for now :)
-    for career_entry in careers_data:
-        if any(interest in career_entry["interests"] for interest in user.interests) and \
-           any(skill in career_entry["skills"] for skill in user.skills):
-            return {
-                "career": career_entry["career"],
-                "learning_path": career_entry["learning_path"]
-            }
-    
-    # Default suggestion if no match is found
-    # I will improve this later with AI or more rules
-    return {
-        "career": "General Software Developer",
-        "learning_path": ["Python", "Git", "Databases", "API Development"]
-    }
+def get_ai_recommendation(user_data: UserData):
+    """
+    I send user interests, skills and goal to the AI
+    and expect a structured JSON response.
+    """
+
+    prompt = f"""
+    You are a career advisor.
+
+    User interests: {user_data.interests}
+    User skills: {user_data.skills}
+    Career goal: {user_data.goal}
+
+    Suggest:
+    - ONE suitable career
+    - A short learning path (3–5 steps)
+
+    Respond ONLY in valid JSON format like:
+    {{
+      "career": "...",
+      "learning_path": ["step 1", "step 2", "step 3"]
+    }}
+    """
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7
+        )
+
+        content = response.choices[0].message.content
+        return json.loads(content)
+
+    except Exception as e:
+        print("AI error:", e)
+        return {
+            "career": "General Software Developer",
+            "learning_path": [
+                "Learn Python basics",
+                "Understand Git and GitHub",
+                "Build small projects",
+                "Learn basic APIs"
+            ]
+        }
+
+
+@app.post("/recommend-ai")
+def recommend_ai(user: UserData):
+    return get_ai_recommendation(user)
